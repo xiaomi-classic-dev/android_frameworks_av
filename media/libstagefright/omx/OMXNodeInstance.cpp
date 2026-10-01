@@ -266,24 +266,28 @@ status_t OMXNodeInstance::freeNode(OMXMaster *master) {
             break;
     }
 
+    OMX_ERRORTYPE err;
+    {
 #ifndef SKIP_CVE_2017_13154
-    Mutex::Autolock _l(mLock);
+        Mutex::Autolock _l(mLock);
 #endif
 
-    ALOGV("calling destroyComponentInstance");
-    OMX_ERRORTYPE err = master->destroyComponentInstance(
-            static_cast<OMX_COMPONENTTYPE *>(mHandle));
-    ALOGV("destroyComponentInstance returned err %d", err);
+        ALOGV("calling destroyComponentInstance");
+        err = master->destroyComponentInstance(
+                static_cast<OMX_COMPONENTTYPE *>(mHandle));
+        ALOGV("destroyComponentInstance returned err %d", err);
 
-    mHandle = NULL;
+        mHandle = NULL;
 
-    if (err != OMX_ErrorNone) {
-        ALOGE("FreeHandle FAILED with error 0x%08x.", err);
+        if (err != OMX_ErrorNone) {
+            ALOGE("FreeHandle FAILED with error 0x%08x.", err);
+        }
+
+        mOwner->invalidateNodeID(mNodeID);
+        mNodeID = NULL;
     }
 
-    mOwner->invalidateNodeID(mNodeID);
-    mNodeID = NULL;
-
+    // Release the scoped lock before deleting the object that contains mLock.
     ALOGV("OMXNodeInstance going away.");
     delete this;
 
